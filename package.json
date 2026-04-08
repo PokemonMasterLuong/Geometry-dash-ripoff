@@ -1,0 +1,24 @@
+{
+  "name": "web-games",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PokemonMasterLuong/Geometry-dash-ripoff.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/PokemonMasterLuong/Geometry-dash-ripoff/issues"
+  },
+  "homepage": "https://github.com/PokemonMasterLuong/Geometry-dash-ripoff#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
