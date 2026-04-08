@@ -120,19 +120,29 @@ function checkObstacles() {
     const groundSurface = GROUND_Y + PLAYER_RADIUS;
 
     for (const obs of level.obstacles) {
-        let hit = false;
         if (obs.type === 'spike') {
-            // Use a reduced-height rect for the spike (forgiving at the tip)
+            // Spikes = instant death
             const spikeRectH = obs.h * 0.7;
             const rx = obs.x;
             const ry = groundSurface - obs.h + (obs.h - spikeRectH);
-            hit = circleVsRect(hb.cx, hb.cy, hb.r, rx, ry, obs.w, spikeRectH);
+            if (circleVsRect(hb.cx, hb.cy, hb.r, rx, ry, obs.w, spikeRectH)) return true;
         } else if (obs.type === 'block' || obs.type === 'tall') {
+            // Blocks = solid platforms: land on top, die only on side collision
             const rx = obs.x;
             const ry = groundSurface - obs.h;
-            hit = circleVsRect(hb.cx, hb.cy, hb.r, rx, ry, obs.w, obs.h);
+            if (!circleVsRect(hb.cx, hb.cy, hb.r, rx, ry, obs.w, obs.h)) continue;
+
+            // Check if player is coming from above (land on top)
+            const playerBottom = hb.cy + hb.r;
+            const blockTop     = ry;
+            const comingFromAbove = Player.vy >= 0 && playerBottom <= blockTop + 12;
+            if (comingFromAbove) {
+                Player.landOnPlatform(blockTop);
+            } else {
+                // Side or bottom collision = death (ran into the wall)
+                return true;
+            }
         }
-        if (hit) return true;
     }
 
     // Fall through gap = death
