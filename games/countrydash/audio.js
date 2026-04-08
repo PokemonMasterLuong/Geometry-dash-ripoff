@@ -38,6 +38,12 @@ const Audio = (() => {
         return midi(key + scale[idx] + octave * 12);
     }
 
+    // Menu theme — separate from level tracks
+    const MENU_TRACK = { bpm:118, key:60, scale:MAJ,
+        bass:[0,0,4,7, 5,5,4,0, 0,0,4,7, 4,5,4,0],
+        mel: [4,7,9,7, 5,5,4,2, 4,7,9,11, 9,7,4,2],
+        arp: [0,4,7,4, 5,9,5,2, 0,4,7,9, 4,7,4,0] };
+
     const LEVELS = [
         // 0 — "Starlight" — C maj, 140 bpm, bright & simple
         { bpm:140, key:60, scale:MAJ,
@@ -231,7 +237,7 @@ const Audio = (() => {
 
     function schedule() {
         if (!running || !ctx) return;
-        const def      = LEVELS[currentLevel] || LEVELS[0];
+        const def      = currentTrack || LEVELS[0];
         const beatDur  = 60 / def.bpm;
         const n        = def.bass.length;   // pattern length in beats
         const now      = ctx.currentTime;
@@ -312,17 +318,27 @@ const Audio = (() => {
 
     // ── Public API ─────────────────────────────────────────────────────────
 
-    function playLevel(index) {
-        ensureCtx();
-        const idx = Math.max(0, Math.min(index, LEVELS.length - 1));
-        if (idx === currentLevel && running) return;  // same level, already playing
+    let currentTrack = null;  // the active track definition
 
+    function startTrack(trackDef, id) {
+        ensureCtx();
+        if (id === currentLevel && running) return;
         stopInternal();
-        currentLevel = idx;
+        currentLevel = id;
+        currentTrack = trackDef;
         beatClock    = ctx.currentTime + 0.05;
         beatIndex    = 0;
         running      = true;
         schedule();
+    }
+
+    function playLevel(index) {
+        const idx = Math.max(0, Math.min(index, LEVELS.length - 1));
+        startTrack(LEVELS[idx], idx);
+    }
+
+    function playMenu() {
+        startTrack(MENU_TRACK, -2);  // -2 = menu id (won't collide with level ids)
     }
 
     function stopInternal() {
@@ -333,6 +349,7 @@ const Audio = (() => {
     function stop() {
         stopInternal();
         currentLevel = -1;
+        currentTrack = null;
     }
 
     function setVolume(v) {
@@ -344,8 +361,8 @@ const Audio = (() => {
     document.addEventListener('visibilitychange', () => {
         if (!ctx) return;
         if (document.hidden) stopInternal();
-        else if (currentLevel >= 0) playLevel(currentLevel);
+        else if (currentTrack) startTrack(currentTrack, currentLevel);
     });
 
-    return { playLevel, stop, setVolume };
+    return { playLevel, playMenu, stop, setVolume };
 })();

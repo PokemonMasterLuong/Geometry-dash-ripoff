@@ -40,7 +40,7 @@ const Game = {
     die() {
         this.state = 'dead';
         this.coinsThisRun = 0;   // lose coins collected this run
-        Audio.stop();
+        // Music keeps playing through death screen
     },
 
     completeLevel() {
@@ -58,7 +58,7 @@ const Game = {
             this.startLevel(next);
         } else {
             this.state = 'menu';
-            Audio.stop();
+            Audio.playMenu();
         }
     },
 };
@@ -193,7 +193,7 @@ document.addEventListener('keydown', e => {
     if (e.code === 'Escape') {
         Shop.close();
         LevelSelect.close();
-        if (Game.state === 'playing') { Game.state = 'menu'; Audio.stop(); }
+        if (Game.state === 'playing') { Game.state = 'menu'; Audio.playMenu(); }
     }
 });
 
