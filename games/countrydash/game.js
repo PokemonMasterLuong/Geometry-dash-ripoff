@@ -159,6 +159,23 @@ function checkCoins() {
     }
 }
 
+// ── Portal check ─────────────────────────────────────────────────────────
+
+function checkPortals() {
+    const level = Game.activeLevel;
+    if (!level || !level.portals) return;
+    for (const portal of level.portals) {
+        if (!portal.triggered &&
+            Player.x + PLAYER_RADIUS > portal.x &&
+            Player.x - PLAYER_RADIUS < portal.x + 50) {
+            portal.triggered = true;
+            Player.mode = portal.portalType;
+            // Smooth transition: zero out vertical speed when entering cube
+            if (portal.portalType === 'cube') Player.vy = 0;
+        }
+    }
+}
+
 // ── Level end check ───────────────────────────────────────────────────────
 
 function checkLevelEnd() {
@@ -182,6 +199,7 @@ document.addEventListener('keydown', e => {
 
     if (e.code === 'Space' || e.code === 'ArrowUp') {
         e.preventDefault();
+        Input.held = true;
         handleAction();
     }
     if (e.code === 'KeyS' && (Game.state === 'menu' || Game.state === 'playing')) {
@@ -197,23 +215,23 @@ document.addEventListener('keydown', e => {
     }
 });
 
+document.addEventListener('keyup', e => {
+    if (e.code === 'Space' || e.code === 'ArrowUp') {
+        Input.held = false;
+    }
+});
+
 Renderer.canvas.addEventListener('pointerdown', e => {
     // Ignore clicks on overlays
     if (document.getElementById('shopOverlay').classList.contains('active')) return;
     if (document.getElementById('levelSelectOverlay').classList.contains('active')) return;
 
-    const rect = Renderer.canvas.getBoundingClientRect();
-    const canvasX = (e.clientX - rect.left) * Game.scaleRatio;
-    const canvasY = (e.clientY - rect.top)  * Game.scaleRatio;
-
-    // Check if clicking Shop or Level select buttons on menu screen
-    if (Game.state === 'menu') {
-        handleAction();
-        return;
-    }
-
+    Input.held = true;
     handleAction();
 });
+
+Renderer.canvas.addEventListener('pointerup',  () => { Input.held = false; });
+Renderer.canvas.addEventListener('pointerout', () => { Input.held = false; });
 
 function handleAction() {
     switch (Game.state) {
@@ -245,6 +263,7 @@ function loop(timestamp) {
         const grounded = hasGroundAt(Player.x);
         Player.update(dt, grounded);
         checkPlatforms();
+        checkPortals();
         checkCoins();
 
         // Move camera

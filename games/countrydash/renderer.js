@@ -431,6 +431,48 @@ const Renderer = (() => {
         }
     }
 
+    function drawPortals(level, cameraX) {
+        if (!level.portals) return;
+        const groundTop = GROUND_Y + PLAYER_RADIUS;
+        const t = Date.now() / 1000;
+        for (const portal of level.portals) {
+            const sx = portal.x - cameraX;
+            if (sx > W + 80 || sx + 50 < -80) continue;
+            const isShip  = portal.portalType === 'ship';
+            const col     = isShip ? '#00cfff' : '#ffd60a';
+            const col2    = isShip ? '#0044ff' : '#ff8c00';
+            const pulse   = 0.7 + 0.3 * Math.sin(t * 4 + portal.x * 0.01);
+
+            ctx.save();
+            ctx.shadowColor = col;
+            ctx.shadowBlur  = 18 * pulse;
+
+            // Tall glowing frame
+            ctx.strokeStyle = col;
+            ctx.lineWidth   = 3;
+            ctx.globalAlpha = 0.85 * pulse;
+            ctx.strokeRect(sx + 10, 12, 30, groundTop - 12);
+
+            // Inner fill gradient
+            const pg = ctx.createLinearGradient(sx + 10, 12, sx + 40, groundTop);
+            pg.addColorStop(0, col + '22');
+            pg.addColorStop(1, col2 + '11');
+            ctx.fillStyle = col;
+            ctx.globalAlpha = 0.18 * pulse;
+            ctx.fillRect(sx + 10, 12, 30, groundTop - 12);
+
+            // Label icon
+            ctx.globalAlpha = 0.95;
+            ctx.fillStyle   = col;
+            ctx.font        = 'bold 10px system-ui';
+            ctx.textAlign   = 'center';
+            ctx.shadowBlur  = 8;
+            ctx.fillText(isShip ? '✈' : '⬛', sx + 25, 28);
+
+            ctx.restore();
+        }
+    }
+
     function drawObstacles(level, cameraX) {
         for (const obs of level.obstacles) {
             const sx = obs.x - cameraX;
@@ -566,6 +608,77 @@ const Renderer = (() => {
         const sy = Player.y;
         const r  = Player.radius;
 
+        if (Player.mode === 'ship') {
+            // ── Ship mode ──────────────────────────────────────────────────
+            const tilt = Math.max(-0.55, Math.min(0.55, Player.vy / SHIP_MAX_VY * 0.55));
+
+            // Engine trail
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(tilt);
+            const trailGrad = ctx.createLinearGradient(-r * 1.6, 0, 0, 0);
+            trailGrad.addColorStop(0, 'rgba(0,180,255,0)');
+            trailGrad.addColorStop(0.6, 'rgba(0,180,255,0.35)');
+            trailGrad.addColorStop(1, 'rgba(255,255,255,0.5)');
+            ctx.fillStyle = trailGrad;
+            ctx.beginPath();
+            ctx.moveTo(-r * 1.6, -r * 0.18);
+            ctx.lineTo(0, -r * 0.32);
+            ctx.lineTo(0,  r * 0.32);
+            ctx.lineTo(-r * 1.6,  r * 0.18);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            // Ship body — rotated diamond with flag inside
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(tilt);
+
+            // Glow shadow
+            ctx.shadowColor = '#00cfff';
+            ctx.shadowBlur  = 14;
+
+            // Hull shape
+            const shipGrad = ctx.createLinearGradient(-r, 0, r, 0);
+            shipGrad.addColorStop(0, '#003355');
+            shipGrad.addColorStop(0.5, '#0077bb');
+            shipGrad.addColorStop(1, '#00cfff');
+            ctx.fillStyle = shipGrad;
+            ctx.beginPath();
+            ctx.moveTo(r * 1.2, 0);       // nose
+            ctx.lineTo(r * 0.2, -r * 0.55); // top wing
+            ctx.lineTo(-r, -r * 0.28);
+            ctx.lineTo(-r * 0.8, 0);
+            ctx.lineTo(-r, r * 0.28);
+            ctx.lineTo(r * 0.2, r * 0.55);  // bottom wing
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+
+            // Flag on the ship body (clipped circle)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(r * 0.1, 0, r * 0.42, 0, Math.PI * 2);
+            ctx.clip();
+            drawFlag(ctx, r * 0.1, 0, r * 0.42, code);
+            ctx.restore();
+
+            // Cockpit glint
+            const cockpitGrad = ctx.createRadialGradient(r * 0.2, -r * 0.08, 0, r * 0.2, 0, r * 0.22);
+            cockpitGrad.addColorStop(0, 'rgba(255,255,255,0.55)');
+            cockpitGrad.addColorStop(1, 'rgba(0,200,255,0.08)');
+            ctx.fillStyle = cockpitGrad;
+            ctx.beginPath();
+            ctx.arc(r * 0.2, 0, r * 0.22, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+            return;
+        }
+
+        // ── Cube mode ──────────────────────────────────────────────────────
         // Squish/stretch based on vertical velocity
         let scaleX = 1, scaleY = 1;
         if (!Player.isGrounded && Math.abs(Player.vy) > 60) {
@@ -877,6 +990,7 @@ const Renderer = (() => {
             drawBackground(activeLevel, cameraX);
             drawGround(activeLevel, cameraX);
             drawPlatforms(activeLevel, cameraX);
+            drawPortals(activeLevel, cameraX);
             drawObstacles(activeLevel, cameraX);
             drawCoins(activeLevel, cameraX);
             drawPlayer(cameraX);
@@ -889,6 +1003,7 @@ const Renderer = (() => {
             drawBackground(activeLevel, cameraX);
             drawGround(activeLevel, cameraX);
             drawPlatforms(activeLevel, cameraX);
+            drawPortals(activeLevel, cameraX);
             drawObstacles(activeLevel, cameraX);
             drawCoins(activeLevel, cameraX);
             drawPlayer(cameraX);

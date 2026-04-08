@@ -256,6 +256,10 @@ const LEVEL_DEFS = [
             { x:3700, y:270, w:120, h:15 },
         ],
         groundGaps: [],
+        portals: [
+            { x:2200, portalType:'ship' },
+            { x:3600, portalType:'cube' },
+        ],
     },
 
     // ── Level 7 ──────────────────────────────────────────────────────────
@@ -374,6 +378,12 @@ const LEVEL_DEFS = [
         groundGaps: [
             { startX: 3350, endX: 3520 },
             { startX: 5450, endX: 5630 },
+        ],
+        portals: [
+            { x:3200, portalType:'ship' },
+            { x:4500, portalType:'cube' },
+            { x:5300, portalType:'ship' },
+            { x:6800, portalType:'cube' },
         ],
     },
 
@@ -513,6 +523,12 @@ const LEVEL_DEFS = [
             { startX: 3950,  endX: 4080 },
             { startX: 6100,  endX: 6270 },
             { startX: 7950,  endX: 8150 },
+        ],
+        portals: [
+            { x:2300,  portalType:'ship' },
+            { x:3800,  portalType:'cube' },
+            { x:5900,  portalType:'ship' },
+            { x:7800,  portalType:'cube' },
         ],
     },
 
