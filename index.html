@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Games</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Web Games</h1>
+        <p>A collection of browser games — no downloads, just play.</p>
+    </header>
+
+    <main>
+        <div class="games-grid">
+
+            <a href="games/countrydash/index.html" class="game-card">
+                <div class="card-preview countrydash-preview">
+                    <canvas id="previewCanvas" width="220" height="120"></canvas>
+                </div>
+                <div class="card-info">
+                    <h2>CountryDash</h2>
+                    <p>A Geometry Dash parody starring countryballs. Jump over obstacles, collect coins, unlock the world.</p>
+                    <span class="card-tag">Platformer</span>
+                </div>
+            </a>
+
+            <div class="game-card coming-soon">
+                <div class="card-preview placeholder-preview">
+                    <span class="soon-icon">?</span>
+                </div>
+                <div class="card-info">
+                    <h2>Coming Soon</h2>
+                    <p>More games are on the way. Check back later!</p>
+                    <span class="card-tag muted">TBA</span>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer>
+        <p>Made with &lt;canvas&gt; and chaos.</p>
+    </footer>
+
+    <script>
+        // Animate the CountryDash preview card with a mini canvas
+        const canvas = document.getElementById('previewCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            let t = 0;
+            let ballY = 90;
+            let vy = 0;
+            const GROUND = 90;
+            const GRAVITY = 1200;
+            let jumped = false;
+
+            function drawPoland(ctx, cx, cy, r) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(cx - r, cy - r, r * 2, r);
+                ctx.fillStyle = '#dc143c';
+                ctx.fillRect(cx - r, cy, r * 2, r);
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            function loop(ts) {
+                t = ts / 1000;
+                ctx.clearRect(0, 0, 220, 120);
+
+                // Background
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, 220, 120);
+
+                // Ground
+                ctx.fillStyle = '#dc143c';
+                ctx.fillRect(0, 100, 220, 20);
+
+                // Scrolling spike
+                const spikeX = 220 - (t * 120 % 280);
+                ctx.fillStyle = '#e63946';
+                ctx.beginPath();
+                ctx.moveTo(spikeX, 100);
+                ctx.lineTo(spikeX + 18, 100);
+                ctx.lineTo(spikeX + 9, 72);
+                ctx.closePath();
+                ctx.fill();
+
+                // Auto jump before spike
+                if (spikeX < 80 && spikeX > 50 && ballY >= GROUND) {
+                    vy = -480;
+                }
+
+                // Physics
+                if (ballY < GROUND) {
+                    vy += GRAVITY * (1 / 60);
+                    ballY += vy * (1 / 60);
+                }
+                if (ballY >= GROUND) {
+                    ballY = GROUND;
+                    vy = 0;
+                }
+
+                drawPoland(ctx, 50, ballY - 12, 12);
+
+                requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
+        }
+    </script>
+</body>
+</html>

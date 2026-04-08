@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CountryDash</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0d0d1a;
+            --surface: #1a1a2e;
+            --accent: #e63946;
+            --accent2: #ffd60a;
+            --text: #f0f0f0;
+            --text-muted: #888;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #canvasWrapper {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 0 60px rgba(230, 57, 70, 0.2);
+        }
+
+        /* ── Overlays ── */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 10;
+            align-items: center;
+            justify-content: center;
+        }
+        .overlay.active { display: flex; }
+
+        /* ── Shop ── */
+        #shopOverlay {
+            flex-direction: column;
+        }
+
+        #shopPanel {
+            background: var(--surface);
+            border-radius: 14px;
+            width: min(680px, 95vw);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #ffffff15;
+        }
+
+        #shopHeader {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid #ffffff10;
+            flex-shrink: 0;
+        }
+
+        #shopHeader h2 { font-size: 1.3rem; font-weight: 700; }
+
+        #shopCoinDisplay {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--accent2);
+        }
+
+        .coin-icon {
+            width: 18px; height: 18px;
+            background: var(--accent2);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            transition: color 0.15s;
+        }
+        .close-btn:hover { color: var(--text); }
+
+        #shopFilters {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.7rem 1.2rem;
+            border-bottom: 1px solid #ffffff10;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            border: 1px solid #ffffff20;
+            background: none;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .filter-btn:hover { border-color: #ffffff40; color: var(--text); }
+        .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        #shopSearch {
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            border: 1px solid #ffffff20;
+            background: #ffffff08;
+            color: var(--text);
+            font-size: 0.8rem;
+            outline: none;
+            flex: 1;
+            min-width: 120px;
+        }
+        #shopSearch::placeholder { color: var(--text-muted); }
+
+        #shopGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 0.8rem;
+            padding: 1rem 1.2rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .char-card {
+            background: #ffffff08;
+            border-radius: 10px;
+            padding: 0.7rem 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid transparent;
+            transition: border-color 0.15s;
+        }
+        .char-card:hover { border-color: #ffffff20; }
+        .char-card.owned { border-color: #2ecc7140; }
+        .char-card.equipped { border-color: var(--accent2); background: rgba(255, 214, 10, 0.06); }
+
+        .char-card canvas { border-radius: 50%; }
+
+        .char-name {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .char-rarity {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+        .char-rarity.common { color: #aaa; }
+        .char-rarity.uncommon { color: #4ec9b0; }
+        .char-rarity.rare { color: #7b7cf7; }
+        .char-rarity.legendary { color: #ffd60a; }
+
+        @keyframes mystical-shimmer {
+            0%   { color: #ff55ff; }
+            25%  { color: #55ffff; }
+            50%  { color: #ff9900; }
+            75%  { color: #55ff99; }
+            100% { color: #ff55ff; }
+        }
+        @keyframes godly-pulse {
+            0%   { color: #ffd700; text-shadow: 0 0 6px #ffd700; }
+            50%  { color: #fff8c0; text-shadow: 0 0 14px #ffd700, 0 0 28px #ff8800; }
+            100% { color: #ffd700; text-shadow: 0 0 6px #ffd700; }
+        }
+        .char-rarity.mystical {
+            animation: mystical-shimmer 3s linear infinite;
+            font-weight: 700;
+        }
+        .char-rarity.godly {
+            animation: godly-pulse 2s ease-in-out infinite;
+            font-weight: 700;
+        }
+
+        .char-btn {
+            width: 100%;
+            padding: 0.28rem;
+            border-radius: 6px;
+            border: none;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .char-btn:hover { opacity: 0.85; }
+        .char-btn.buy { background: var(--accent); color: #fff; }
+        .char-btn.equip { background: #2ecc71; color: #fff; }
+        .char-btn.equipped-label { background: #ffffff15; color: var(--text-muted); cursor: default; }
+        .char-btn.cant-afford { background: #333; color: var(--text-muted); cursor: default; }
+
+        /* ── Level Select ── */
+        #levelSelectOverlay { flex-direction: column; }
+
+        #levelSelectPanel {
+            background: var(--surface);
+            border-radius: 14px;
+            width: min(600px, 95vw);
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 1px solid #ffffff15;
+            padding: 1.5rem;
+        }
+
+        #levelSelectPanel h2 {
+            text-align: center;
+            font-size: 1.4rem;
+            margin-bottom: 1.2rem;
+        }
+
+        #levelGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.8rem;
+        }
+
+        .level-box {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            border: 1px solid #ffffff15;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+            cursor: pointer;
+            background: #ffffff06;
+            transition: all 0.15s;
+            padding: 0.5rem;
+        }
+        .level-box:hover:not(.locked) { border-color: var(--accent); background: rgba(230,57,70,0.1); }
+        .level-box.locked { opacity: 0.35; cursor: default; }
+        .level-box.completed { border-color: #2ecc7150; }
+
+        .level-num { font-size: 1.4rem; font-weight: 800; }
+        .level-name-small { font-size: 0.6rem; color: var(--text-muted); text-align: center; line-height: 1.3; }
+        .level-star { font-size: 0.9rem; }
+
+        #levelSelectBack {
+            display: block;
+            margin: 1.2rem auto 0;
+            padding: 0.5rem 1.5rem;
+            background: #ffffff10;
+            border: none;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        #levelSelectBack:hover { background: #ffffff18; }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #222240;
+            color: var(--text);
+            padding: 0.6rem 1.4rem;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.25s, transform 0.25s;
+            pointer-events: none;
+            z-index: 100;
+            border: 1px solid #ffffff15;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ── Back link ── */
+        #backLink {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            text-decoration: none;
+            background: #ffffff08;
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            border: 1px solid #ffffff10;
+            transition: color 0.15s;
+            z-index: 5;
+        }
+        #backLink:hover { color: var(--text); }
+    </style>
+</head>
+<body>
+    <a href="../../index.html" id="backLink">← Back</a>
+
+    <div id="canvasWrapper">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+    </div>
+
+    <!-- Shop Overlay -->
+    <div id="shopOverlay" class="overlay">
+        <div id="shopPanel">
+            <div id="shopHeader">
+                <h2>Character Shop</h2>
+                <div style="display:flex;align-items:center;gap:1rem;">
+                    <div id="shopCoinDisplay">
+                        <span class="coin-icon"></span>
+                        <span id="shopCoinCount">0</span>
+                    </div>
+                    <button class="close-btn" id="shopClose">✕</button>
+                </div>
+            </div>
+            <div id="shopFilters">
+                <button class="filter-btn active" data-rarity="all">All</button>
+                <button class="filter-btn" data-rarity="common">Common</button>
+                <button class="filter-btn" data-rarity="uncommon">Uncommon</button>
+                <button class="filter-btn" data-rarity="rare">Rare</button>
+                <button class="filter-btn" data-rarity="legendary">Legendary</button>
+                <button class="filter-btn" data-rarity="mystical">Mystical</button>
+                <button class="filter-btn" data-rarity="godly">Godly</button>
+                <input type="text" id="shopSearch" placeholder="Search...">
+            </div>
+            <div id="shopGrid"></div>
+        </div>
+    </div>
+
+    <!-- Level Select Overlay -->
+    <div id="levelSelectOverlay" class="overlay">
+        <div id="levelSelectPanel">
+            <h2>Select Level</h2>
+            <div id="levelGrid"></div>
+            <button id="levelSelectBack">Back</button>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast"></div>
+
+    <!-- Load order matters: dependencies first -->
+    <script src="save.js"></script>
+    <script src="characters.js"></script>
+    <script src="levels.js"></script>
+    <script src="player.js"></script>
+    <script src="renderer.js"></script>
+    <script src="audio.js"></script>
+    <script src="shop.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
