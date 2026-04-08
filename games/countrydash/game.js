@@ -127,21 +127,18 @@ function checkObstacles() {
             const ry = groundSurface - obs.h + (obs.h - spikeRectH);
             if (circleVsRect(hb.cx, hb.cy, hb.r, rx, ry, obs.w, spikeRectH)) return true;
         } else if (obs.type === 'block' || obs.type === 'tall') {
-            // Blocks = solid platforms: land on top, die only on side collision
+            // Blocks = solid platforms only, never kill
             const rx = obs.x;
             const ry = groundSurface - obs.h;
             if (!circleVsRect(hb.cx, hb.cy, hb.r, rx, ry, obs.w, obs.h)) continue;
 
-            // Check if player is coming from above (land on top)
             const playerBottom = hb.cy + hb.r;
             const blockTop     = ry;
             const comingFromAbove = Player.vy >= 0 && playerBottom <= blockTop + 12;
             if (comingFromAbove) {
                 Player.landOnPlatform(blockTop);
-            } else {
-                // Side or bottom collision = death (ran into the wall)
-                return true;
             }
+            // Side/bottom contact: no death, player passes through
         }
     }
 

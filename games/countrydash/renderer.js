@@ -658,21 +658,32 @@ const Renderer = (() => {
             ctx.shadowBlur = 0;
 
             // Flag on the ship body (clipped circle)
+            const fr = r * 0.42, fx = r * 0.1;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(r * 0.1, 0, r * 0.42, 0, Math.PI * 2);
+            ctx.arc(fx, 0, fr, 0, Math.PI * 2);
             ctx.clip();
-            drawFlag(ctx, r * 0.1, 0, r * 0.42, code);
+            drawFlag(ctx, fx, 0, fr, code);
             ctx.restore();
 
-            // Cockpit glint
-            const cockpitGrad = ctx.createRadialGradient(r * 0.2, -r * 0.08, 0, r * 0.2, 0, r * 0.22);
-            cockpitGrad.addColorStop(0, 'rgba(255,255,255,0.55)');
-            cockpitGrad.addColorStop(1, 'rgba(0,200,255,0.08)');
-            ctx.fillStyle = cockpitGrad;
+            // Thick border on the flag circle
             ctx.beginPath();
-            ctx.arc(r * 0.2, 0, r * 0.22, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.arc(fx, 0, fr, 0, Math.PI * 2);
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = fr * 0.18;
+            ctx.stroke();
+
+            // Mini "OO" eyes on the flag circle
+            const meR = fr * 0.27, meX = fr * 0.30, meY = fr * 0.12;
+            for (const ex of [fx - meX, fx + meX]) {
+                ctx.beginPath();
+                ctx.arc(ex, meY, meR, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = fr * 0.12;
+                ctx.stroke();
+            }
 
             ctx.restore();
             return;
@@ -709,30 +720,40 @@ const Renderer = (() => {
         drawFlag(ctx, sx, sy, r, code);
         ctx.restore();
 
-        // Eye
+        // Countryball style — thick black border + "OO" eyes, all squish/stretch together
         ctx.save();
         ctx.translate(sx, sy);
         ctx.scale(scaleX, scaleY);
-        const er = r * 0.22;
-        const ex = r * 0.32, ey = -r * 0.18;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#111';
-        ctx.beginPath(); ctx.arc(ex + er * 0.2, ey + er * 0.15, er * 0.55, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.beginPath(); ctx.arc(ex - er * 0.1, ey - er * 0.18, er * 0.22, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
 
-        // Specular highlight (top-left glint)
-        ctx.save();
-        ctx.translate(sx, sy);
-        ctx.scale(scaleX, scaleY);
-        const glint = ctx.createRadialGradient(-r * 0.28, -r * 0.28, 0, -r * 0.08, -r * 0.08, r * 0.72);
-        glint.addColorStop(0,   'rgba(255,255,255,0.42)');
-        glint.addColorStop(0.42,'rgba(255,255,255,0.09)');
-        glint.addColorStop(1,   'rgba(255,255,255,0)');
+        // Thick black outline
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = r * 0.18;
+        ctx.stroke();
+
+        // "OO" eyes — two white circles with thick black rings
+        const eyeR = r * 0.27;   // eye radius
+        const eyeX = r * 0.30;   // horizontal offset from center
+        const eyeY = r * 0.12;   // slight downward offset
+        for (const ex of [-eyeX, eyeX]) {
+            ctx.beginPath();
+            ctx.arc(ex, eyeY, eyeR, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = r * 0.12;
+            ctx.stroke();
+        }
+
+        // Specular glint (top-left shine)
+        const glint = ctx.createRadialGradient(-r * 0.30, -r * 0.32, 0, -r * 0.10, -r * 0.10, r * 0.68);
+        glint.addColorStop(0,    'rgba(255,255,255,0.38)');
+        glint.addColorStop(0.40, 'rgba(255,255,255,0.07)');
+        glint.addColorStop(1,    'rgba(255,255,255,0)');
         ctx.fillStyle = glint;
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+
         ctx.restore();
     }
 

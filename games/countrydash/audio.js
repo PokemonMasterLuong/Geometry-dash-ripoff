@@ -117,12 +117,14 @@ const Audio = (() => {
           mel: [5,7,8,7, 5,3,5,7, 8,7,5,3, 2,3,2,0],
           arp: [0,3,5,7, 5,7,3,8, 5,8,7,5, 3,5,7,0] },
 
-        // 12 — "Boss: World Domination" — Montagem Rugada — A min, 148 bpm
-        // Bass pattern approximates the iconic rugada slide: root→5→3→7 loop
-        { bpm:148, key:57, scale:MIN, boss:true,
-          bass:[0,0,0,7, 3,3,3,5, 0,0,0,7, 5,5,3,0],
-          mel: [7,5,3,5, 7,8,7,5, 3,5,7,5, 8,7,5,7],
-          arp: [0,7,3,5, 0,5,3,7, 3,0,7,5, 0,3,5,7] },
+        // 12 — "Boss: World Domination" — Montagem Rugada — A min, 130 bpm
+        // Scale indices for A min: 0=A(root), 2=C(min3), 4=E(5th), 6=G(min7)
+        // Bass is 16 quarter-note steps; boss scheduler doubles each at 8th-note level.
+        // Pattern: root×3 → 5th → min3×2 → 5th → min3 → root×3 → 5th → min7 → 5th → min3 → root
+        { bpm:130, key:57, scale:MIN, boss:true,
+          bass:[0,0,0,4, 2,2,4,2, 0,0,0,4, 6,4,2,0],
+          mel: [4,2,0,2, 4,6,4,2, 0,2,4,2, 6,4,2,4],
+          arp: [0,4,2,4, 0,4,2,6, 2,0,4,2, 0,2,4,0] },
     ];
 
     // ── Oscillator / synth helpers ─────────────────────────────────────────
@@ -213,20 +215,42 @@ const Audio = (() => {
         }
     }
 
-    // ── 808-style sliding bass (boss level) ───────────────────────────────
+    // ── 808-style sliding bass ────────────────────────────────────────────
+    // freq1 = target note, freq2 = portamento destination (next note).
+    // "Wub" attack: pitch dives from 1.45× above freq1 down to freq1 in ~28 ms,
+    // then slides toward freq2 (portamento). Waveshaper gives the warm drive.
 
     function play808Bass(freq1, freq2, startTime, duration) {
         if (!ctx) return;
         const osc  = ctx.createOscillator();
+        const ws   = ctx.createWaveShaper();
         const gain = ctx.createGain();
+
+        // Soft-clip saturation — warmer, more driven 808 tone
+        const N = 512, amt = 22;
+        const curve = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+            const x = (i * 2) / N - 1;
+            curve[i] = (Math.PI + amt) * x / (Math.PI + amt * Math.abs(x));
+        }
+        ws.curve = curve;
+        ws.oversample = '2x';
+
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq1, startTime);
-        osc.frequency.exponentialRampToValueAtTime(freq2, startTime + duration * 0.35);
+        // WUB: start 1.45× above target, dive down in 28 ms → audible pitch sweep
+        osc.frequency.setValueAtTime(freq1 * 1.45, startTime);
+        osc.frequency.exponentialRampToValueAtTime(freq1, startTime + 0.028);
+        // Portamento: glide toward next note after the wub settles
+        osc.frequency.setValueAtTime(freq1, startTime + 0.028);
+        osc.frequency.exponentialRampToValueAtTime(freq2, startTime + duration * 0.72);
+
         gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.52, startTime + 0.006);
-        gain.gain.setValueAtTime(0.38, startTime + 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 0.88);
-        osc.connect(gain);
+        gain.gain.linearRampToValueAtTime(0.70, startTime + 0.003);  // instant punch
+        gain.gain.setValueAtTime(0.50, startTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 0.84);
+
+        osc.connect(ws);
+        ws.connect(gain);
         gain.connect(masterGain);
         osc.start(startTime);
         osc.stop(startTime + duration);
@@ -266,37 +290,54 @@ const Audio = (() => {
 
             if (def.boss) {
                 // ── BOSS: Montagem Rugada style ────────────────────────────
-                // 808 sliding bass: slide from current note to next
+                const half    = beatDur * 0.5;
                 const nextBi  = ((bi + 1) % n + n) % n;
                 const nextDeg = def.bass[nextBi];
-                play808Bass(
-                    deg(def.scale, def.key, bassDeg, -2),
-                    deg(def.scale, def.key, nextDeg, -2),
-                    t, beatDur
-                );
+                const baseFreq = deg(def.scale, def.key, bassDeg, -2);
+                const nextFreq = deg(def.scale, def.key, nextDeg, -2);
 
-                // Melody — sawtooth for grit
+                // 808 doubles at 8th-note level — two wubs per beat ("wub wub")
+                // On-beat hit: wub into current note, portamento toward next
+                play808Bass(baseFreq, nextFreq, t, half * 0.93);
+                // "And" hit: same wub again, continuing slide to next note
+                play808Bass(baseFreq, nextFreq, t + half, half * 0.93);
+
+                // Melody — sawtooth, on the beat only
                 const melDeg = def.mel[bi];
-                playNote(deg(def.scale, def.key, melDeg, 0), t, beatDur * 0.5, 'sawtooth', 0.11);
+                playNote(deg(def.scale, def.key, melDeg, 0), t, beatDur * 0.45, 'sawtooth', 0.09);
 
-                // Arp — fast 16th note subdivisions
+                // Arp — 16th-note subdivisions, square wave, slight detune chorus
                 const subDur = beatDur / 4;
                 for (let s = 0; s < 4; s++) {
                     const arpDeg = def.arp[(bi * 4 + s) % def.arp.length];
-                    playNote(deg(def.scale, def.key, arpDeg, 1), t + s * subDur, subDur * 0.6,
-                             'square', 0.055, (s % 2 === 0) ? 8 : -8);
+                    playNote(deg(def.scale, def.key, arpDeg, 1), t + s * subDur, subDur * 0.55,
+                             'square', 0.042, (s % 2 === 0) ? 9 : -9);
                 }
 
-                // Heavy kick: beat 0, beat 2, and a syncopated hit on beat 3 halfway
-                if (barBeat === 0 || barBeat === 2) playHeavyKick(t);
-                if (barBeat === 3) playHeavyKick(t + beatDur * 0.5);
-                // Snare on 1 and 3
+                // Drums — Montagem Rugada kick pattern:
+                // Beat 1 (barBeat 0): downbeat kick + anticipation kick on "and of 2"
+                if (barBeat === 0) {
+                    playHeavyKick(t);
+                    playHeavyKick(t + beatDur * 0.75);  // "and of 2" anticipation
+                }
+                // Beat 3 (barBeat 2): straight kick
+                if (barBeat === 2) playHeavyKick(t);
+                // "And of 4" (barBeat 3, half): pre-kick before bar 2
+                if (barBeat === 3) playHeavyKick(t + half);
+                // Snare on 2 and 4
                 if (barBeat === 1 || barBeat === 3) playDrum(t, 'snare');
-                // Fast hi-hats — every 1/8 note (2 per beat)
+                // 16th hi-hats
                 playDrum(t,                  'hihat');
                 playDrum(t + beatDur * 0.25, 'hihat');
                 playDrum(t + beatDur * 0.5,  'hihat');
                 playDrum(t + beatDur * 0.75, 'hihat');
+                // Tamborim — carioca funk pattern: "and" of every beat,
+                // plus "e" and "ah" of beats 2 and 4 for the classic stutter
+                playDrum(t + half, 'tamborim');
+                if (barBeat === 1 || barBeat === 3) {
+                    playDrum(t + beatDur * 0.25, 'tamborim');
+                    playDrum(t + beatDur * 0.75, 'tamborim');
+                }
 
             } else {
                 // ── Normal levels — Montagem Rugada style ──────────────────
