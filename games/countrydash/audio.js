@@ -38,11 +38,11 @@ const Audio = (() => {
         return midi(key + scale[idx] + octave * 12);
     }
 
-    // Menu theme — separate from level tracks
-    const MENU_TRACK = { bpm:118, key:60, scale:MAJ,
-        bass:[0,0,4,7, 5,5,4,0, 0,0,4,7, 4,5,4,0],
-        mel: [4,7,9,7, 5,5,4,2, 4,7,9,11, 9,7,4,2],
-        arp: [0,4,7,4, 5,9,5,2, 0,4,7,9, 4,7,4,0] };
+    // Menu theme — upbeat funk intro
+    const MENU_TRACK = { bpm:130, key:60, scale:MAJ,
+        bass:[0,0,4,7, 5,5,4,2, 0,0,7,4, 5,4,2,0],
+        mel: [4,7,9,7, 4,4,7,9, 5,9,7,5, 4,2,0,2],
+        arp: [0,4,7,4, 0,4,7,9, 5,9,5,4, 0,4,7,0] };
 
     const LEVELS = [
         // 0 — "Starlight" — C maj, 140 bpm, bright & simple
@@ -195,6 +195,20 @@ const Audio = (() => {
             g.gain.exponentialRampToValueAtTime(0.001, time + 0.035);
             src.connect(hpf); hpf.connect(g); g.connect(masterGain);
             src.start(time); src.stop(time + 0.04);
+        } else if (type === 'tamborim') {
+            // High metallic percussive hit — Brazilian funk flavour
+            const buf  = ctx.createBuffer(1, ctx.sampleRate * 0.055, ctx.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+            const src = ctx.createBufferSource();
+            const bpf = ctx.createBiquadFilter();
+            const g   = ctx.createGain();
+            src.buffer = buf;
+            bpf.type = 'bandpass'; bpf.frequency.value = 4800; bpf.Q.value = 1.4;
+            g.gain.setValueAtTime(0.22, time);
+            g.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            src.connect(bpf); bpf.connect(g); g.connect(masterGain);
+            src.start(time); src.stop(time + 0.055);
         }
     }
 
@@ -284,29 +298,47 @@ const Audio = (() => {
                 playDrum(t + beatDur * 0.75, 'hihat');
 
             } else {
-                // ── Normal levels ──────────────────────────────────────────
-                // Bass — square wave, low octave
-                playNote(deg(def.scale, def.key, bassDeg, -1), t, beatDur * 0.85, 'square', 0.17);
+                // ── Normal levels — Montagem Rugada style ──────────────────
+                // 808 sliding bass — slides into next note
+                const nextBi  = ((bi + 1) % n + n) % n;
+                const nextDeg = def.bass[nextBi];
+                play808Bass(
+                    deg(def.scale, def.key, bassDeg, -1),
+                    deg(def.scale, def.key, nextDeg, -1),
+                    t, beatDur * 0.92
+                );
 
-                // Melody — triangle wave, upper octave
-                const melDeg  = def.mel[bi];
-                playNote(deg(def.scale, def.key, melDeg, 1), t, beatDur * 0.55, 'triangle', 0.13);
+                // Lead melody — sawtooth for grit, upper octave
+                const melDeg = def.mel[bi];
+                playNote(deg(def.scale, def.key, melDeg, 1), t, beatDur * 0.45, 'sawtooth', 0.12);
+                // Harmony layer — mid octave, quieter square
+                playNote(deg(def.scale, def.key, melDeg, 0), t, beatDur * 0.40, 'square', 0.07);
 
-                // Arp — sawtooth, mid octave, 4 subdivisions
+                // Arp — 4 subdivisions, punchy
                 const subDur = beatDur / 4;
                 for (let s = 0; s < 4; s++) {
                     const arpDeg = def.arp[(bi * 4 + s) % def.arp.length];
-                    playNote(deg(def.scale, def.key, arpDeg, 0), t + s * subDur, subDur * 0.7,
-                             'sawtooth', 0.065, (s % 2 === 0) ? 5 : -5);
+                    playNote(deg(def.scale, def.key, arpDeg, 0), t + s * subDur, subDur * 0.6,
+                             'sawtooth', 0.07, (s % 2 === 0) ? 7 : -7);
                 }
 
-                // Kick on beats 0 and 2
-                if (barBeat === 0 || barBeat === 2) playDrum(t, 'kick');
-                // Snare on beats 1 and 3
+                // Drums — Montagem Rugada pattern
+                // Heavy kick: beat 1 + syncopated "and" of beat 1, beat 3
+                if (barBeat === 0) {
+                    playHeavyKick(t);
+                    playHeavyKick(t + beatDur * 0.75); // syncopated anticipation kick
+                }
+                if (barBeat === 2) playHeavyKick(t);
+                // Snare on beats 2 and 4
                 if (barBeat === 1 || barBeat === 3) playDrum(t, 'snare');
-                // Hi-hat every half beat
-                playDrum(t, 'hihat');
-                playDrum(t + beatDur * 0.5, 'hihat');
+                // 16th-note hi-hats — 4 per beat
+                for (let hh = 0; hh < 4; hh++) {
+                    playDrum(t + hh * beatDur / 4, 'hihat');
+                }
+                // Tamborim on off-beats (the "e" of beats 2 and 4)
+                if (barBeat === 1 || barBeat === 3) {
+                    playDrum(t + beatDur * 0.5, 'tamborim');
+                }
             }
 
             beatClock += beatDur;
