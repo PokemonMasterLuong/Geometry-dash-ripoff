@@ -117,11 +117,12 @@ const Audio = (() => {
           mel: [5,7,8,7, 5,3,5,7, 8,7,5,3, 2,3,2,0],
           arp: [0,3,5,7, 5,7,3,8, 5,8,7,5, 3,5,7,0] },
 
-        // 12 — "Boss: World Domination" — Montagem Rugada style — A min, 150 bpm
-        { bpm:150, key:57, scale:MIN, boss:true,
-          bass:[0,0,7,0, 3,0,7,5, 0,0,3,5, 7,5,3,0],
-          mel: [7,7,5,3, 5,7,8,7, 3,5,7,5, 8,7,5,3],
-          arp: [0,3,7,3, 0,3,5,7, 3,5,3,7, 0,7,5,3] },
+        // 12 — "Boss: World Domination" — Montagem Rugada — A min, 148 bpm
+        // Bass pattern approximates the iconic rugada slide: root→5→3→7 loop
+        { bpm:148, key:57, scale:MIN, boss:true,
+          bass:[0,0,0,7, 3,3,3,5, 0,0,0,7, 5,5,3,0],
+          mel: [7,5,3,5, 7,8,7,5, 3,5,7,5, 8,7,5,7],
+          arp: [0,7,3,5, 0,5,3,7, 3,0,7,5, 0,3,5,7] },
     ];
 
     // ── Oscillator / synth helpers ─────────────────────────────────────────
