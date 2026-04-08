@@ -33,11 +33,11 @@ const Player = {
     },
 
     jump() {
-        // Only cube mode uses click-to-jump; ship mode uses held state
         if (this.mode === 'cube' && this.isGrounded) {
             this.vy = -JUMP_VELOCITY;
             this.isGrounded = false;
         }
+        // Ship mode: holding is handled in update() via Input.held
     },
 
     update(dt, hasGround) {
@@ -77,6 +77,11 @@ const Player = {
                 this.y = GROUND_Y;
                 this.vy = 0;
                 this.isGrounded = true;
+                // Auto-jump if still holding
+                if (Input.held) {
+                    this.vy = -JUMP_VELOCITY;
+                    this.isGrounded = false;
+                }
             } else if (!hasGround && this.y >= GROUND_Y) {
                 this.isGrounded = false;
             }
@@ -87,6 +92,10 @@ const Player = {
         this.y = surfaceY;
         this.vy = 0;
         this.isGrounded = true;
+        if (this.mode === 'cube' && Input.held) {
+            this.vy = -JUMP_VELOCITY;
+            this.isGrounded = false;
+        }
     },
 
     getHitbox() {
