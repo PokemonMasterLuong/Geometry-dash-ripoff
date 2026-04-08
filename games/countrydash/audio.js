@@ -111,11 +111,11 @@ const Audio = (() => {
           mel: [5,7,8,7, 5,3,5,7, 8,7,5,3, 2,3,2,0],
           arp: [0,3,5,7, 5,7,3,8, 5,8,7,5, 3,5,7,0] },
 
-        // 12 — "Boss: Armageddon" — F min, 200 bpm, epic finale
-        { bpm:200, key:53, scale:HARM,
-          bass:[0,7,5,3, 0,0,7,5, 3,5,7,5, 3,0,5,7],
-          mel: [5,7,8,7, 5,5,7,8, 7,8,7,5, 3,5,7,5],
-          arp: [0,3,5,7, 5,3,7,5, 0,7,5,3, 5,7,8,7] },
+        // 12 — "Boss: World Domination" — Montagem Rugada style — A min, 150 bpm
+        { bpm:150, key:57, scale:MIN, boss:true,
+          bass:[0,0,7,0, 3,0,7,5, 0,0,3,5, 7,5,3,0],
+          mel: [7,7,5,3, 5,7,8,7, 3,5,7,5, 8,7,5,3],
+          arp: [0,3,7,3, 0,3,5,7, 3,5,3,7, 0,7,5,3] },
     ];
 
     // ── Oscillator / synth helpers ─────────────────────────────────────────
@@ -192,6 +192,38 @@ const Audio = (() => {
         }
     }
 
+    // ── 808-style sliding bass (boss level) ───────────────────────────────
+
+    function play808Bass(freq1, freq2, startTime, duration) {
+        if (!ctx) return;
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq1, startTime);
+        osc.frequency.exponentialRampToValueAtTime(freq2, startTime + duration * 0.35);
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.52, startTime + 0.006);
+        gain.gain.setValueAtTime(0.38, startTime + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 0.88);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+    }
+
+    function playHeavyKick(time) {
+        if (!ctx) return;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(200, time);
+        o.frequency.exponentialRampToValueAtTime(28, time + 0.22);
+        g.gain.setValueAtTime(0.9, time);
+        g.gain.exponentialRampToValueAtTime(0.001, time + 0.28);
+        o.connect(g); g.connect(masterGain);
+        o.start(time); o.stop(time + 0.3);
+    }
+
     // ── Scheduler ─────────────────────────────────────────────────────────
 
     const LOOKAHEAD   = 0.14;  // seconds to schedule ahead
@@ -208,31 +240,68 @@ const Audio = (() => {
             const bi = ((beatIndex % n) + n) % n;
             const t  = beatClock;
 
-            // ── Bass — square wave, low octave ─────────────────────────────
             const bassDeg = def.bass[bi];
-            playNote(deg(def.scale, def.key, bassDeg, -1), t, beatDur * 0.85, 'square', 0.17);
-
-            // ── Melody — triangle wave, upper octave ───────────────────────
-            const melDeg  = def.mel[bi];
-            playNote(deg(def.scale, def.key, melDeg, 1), t, beatDur * 0.55, 'triangle', 0.13);
-
-            // ── Arp — sawtooth, mid octave, 4 subdivisions ─────────────────
-            const subDur = beatDur / 4;
-            for (let s = 0; s < 4; s++) {
-                const arpDeg = def.arp[(bi * 4 + s) % def.arp.length];
-                playNote(deg(def.scale, def.key, arpDeg, 0), t + s * subDur, subDur * 0.7,
-                         'sawtooth', 0.065, (s % 2 === 0) ? 5 : -5);
-            }
-
-            // ── Drums ──────────────────────────────────────────────────────
-            // Kick on beats 0 and 2 (of 4-beat bar)
             const barBeat = beatIndex % 4;
-            if (barBeat === 0 || barBeat === 2) playDrum(t, 'kick');
-            // Snare on beats 1 and 3
-            if (barBeat === 1 || barBeat === 3) playDrum(t, 'snare');
-            // Hi-hat every half beat
-            playDrum(t, 'hihat');
-            playDrum(t + beatDur * 0.5, 'hihat');
+
+            if (def.boss) {
+                // ── BOSS: Montagem Rugada style ────────────────────────────
+                // 808 sliding bass: slide from current note to next
+                const nextBi  = ((bi + 1) % n + n) % n;
+                const nextDeg = def.bass[nextBi];
+                play808Bass(
+                    deg(def.scale, def.key, bassDeg, -2),
+                    deg(def.scale, def.key, nextDeg, -2),
+                    t, beatDur
+                );
+
+                // Melody — sawtooth for grit
+                const melDeg = def.mel[bi];
+                playNote(deg(def.scale, def.key, melDeg, 0), t, beatDur * 0.5, 'sawtooth', 0.11);
+
+                // Arp — fast 16th note subdivisions
+                const subDur = beatDur / 4;
+                for (let s = 0; s < 4; s++) {
+                    const arpDeg = def.arp[(bi * 4 + s) % def.arp.length];
+                    playNote(deg(def.scale, def.key, arpDeg, 1), t + s * subDur, subDur * 0.6,
+                             'square', 0.055, (s % 2 === 0) ? 8 : -8);
+                }
+
+                // Heavy kick: beat 0, beat 2, and a syncopated hit on beat 3 halfway
+                if (barBeat === 0 || barBeat === 2) playHeavyKick(t);
+                if (barBeat === 3) playHeavyKick(t + beatDur * 0.5);
+                // Snare on 1 and 3
+                if (barBeat === 1 || barBeat === 3) playDrum(t, 'snare');
+                // Fast hi-hats — every 1/8 note (2 per beat)
+                playDrum(t,                  'hihat');
+                playDrum(t + beatDur * 0.25, 'hihat');
+                playDrum(t + beatDur * 0.5,  'hihat');
+                playDrum(t + beatDur * 0.75, 'hihat');
+
+            } else {
+                // ── Normal levels ──────────────────────────────────────────
+                // Bass — square wave, low octave
+                playNote(deg(def.scale, def.key, bassDeg, -1), t, beatDur * 0.85, 'square', 0.17);
+
+                // Melody — triangle wave, upper octave
+                const melDeg  = def.mel[bi];
+                playNote(deg(def.scale, def.key, melDeg, 1), t, beatDur * 0.55, 'triangle', 0.13);
+
+                // Arp — sawtooth, mid octave, 4 subdivisions
+                const subDur = beatDur / 4;
+                for (let s = 0; s < 4; s++) {
+                    const arpDeg = def.arp[(bi * 4 + s) % def.arp.length];
+                    playNote(deg(def.scale, def.key, arpDeg, 0), t + s * subDur, subDur * 0.7,
+                             'sawtooth', 0.065, (s % 2 === 0) ? 5 : -5);
+                }
+
+                // Kick on beats 0 and 2
+                if (barBeat === 0 || barBeat === 2) playDrum(t, 'kick');
+                // Snare on beats 1 and 3
+                if (barBeat === 1 || barBeat === 3) playDrum(t, 'snare');
+                // Hi-hat every half beat
+                playDrum(t, 'hihat');
+                playDrum(t + beatDur * 0.5, 'hihat');
+            }
 
             beatClock += beatDur;
             beatIndex++;
