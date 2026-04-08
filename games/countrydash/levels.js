@@ -38,7 +38,7 @@ const LEVEL_DEFS = [
 
     // ── Level 2 ──────────────────────────────────────────────────────────
     {
-        id: 2, name: 'Stereo Rush',
+        id: 2, name: 'Headrush',
         speed: 220, bgColor: '#1e1e2e', groundColor: '#ffce00',
         coinReward: 55, endX: 5500,
         obstacles: [
@@ -70,7 +70,7 @@ const LEVEL_DEFS = [
 
     // ── Level 3 ──────────────────────────────────────────────────────────
     {
-        id: 3, name: 'Polargeist',
+        id: 3, name: 'Frostbite',
         speed: 230, bgColor: '#0f0f1f', groundColor: '#002395',
         coinReward: 65, endX: 6000,
         obstacles: [
@@ -109,7 +109,7 @@ const LEVEL_DEFS = [
 
     // ── Level 4 ──────────────────────────────────────────────────────────
     {
-        id: 4, name: 'Dry Out',
+        id: 4, name: 'Deadlands',
         speed: 240, bgColor: '#1a0f0f', groundColor: '#009246',
         coinReward: 75, endX: 6500,
         obstacles: [
@@ -152,7 +152,7 @@ const LEVEL_DEFS = [
 
     // ── Level 5 ──────────────────────────────────────────────────────────
     {
-        id: 5, name: 'Base After Base',
+        id: 5, name: 'Overdrive',
         speed: 248, bgColor: '#1f0a0a', groundColor: '#aa151b',
         coinReward: 85, endX: 7000,
         obstacles: [
@@ -201,7 +201,7 @@ const LEVEL_DEFS = [
 
     // ── Level 6 ──────────────────────────────────────────────────────────
     {
-        id: 6, name: 'Cant Let Go',
+        id: 6, name: 'Voltage',
         speed: 255, bgColor: '#0a0a1a', groundColor: '#bc002d',
         coinReward: 100, endX: 7500,
         obstacles: [
@@ -264,7 +264,7 @@ const LEVEL_DEFS = [
 
     // ── Level 7 ──────────────────────────────────────────────────────────
     {
-        id: 7, name: 'Jumper',
+        id: 7, name: 'Freefall',
         speed: 262, bgColor: '#0d0d20', groundColor: '#cd2e3a',
         coinReward: 115, endX: 8000,
         obstacles: [
@@ -320,7 +320,7 @@ const LEVEL_DEFS = [
 
     // ── Level 8 ──────────────────────────────────────────────────────────
     {
-        id: 8, name: 'Time Machine',
+        id: 8, name: 'Warp Zone',
         speed: 268, bgColor: '#1a0000', groundColor: '#de2910',
         coinReward: 130, endX: 8500,
         obstacles: [
@@ -389,7 +389,7 @@ const LEVEL_DEFS = [
 
     // ── Level 9 ──────────────────────────────────────────────────────────
     {
-        id: 9, name: 'Cycles',
+        id: 9, name: 'Blackout',
         speed: 275, bgColor: '#0f0f1f', groundColor: '#1c3578',
         coinReward: 145, endX: 9000,
         obstacles: [
@@ -455,7 +455,7 @@ const LEVEL_DEFS = [
 
     // ── Level 10 ─────────────────────────────────────────────────────────
     {
-        id: 10, name: 'xStep',
+        id: 10, name: 'Subsonic',
         speed: 282, bgColor: '#0a1520', groundColor: '#000000',
         coinReward: 165, endX: 9500,
         obstacles: [
@@ -534,7 +534,7 @@ const LEVEL_DEFS = [
 
     // ── Level 11 ─────────────────────────────────────────────────────────
     {
-        id: 11, name: 'Clubstep',
+        id: 11, name: 'Nightcore',
         speed: 288, bgColor: '#050510', groundColor: '#cc0000',
         coinReward: 185, endX: 10000,
         obstacles: [
@@ -616,7 +616,7 @@ const LEVEL_DEFS = [
 
     // ── Level 12 ─────────────────────────────────────────────────────────
     {
-        id: 12, name: 'Theory of Everything',
+        id: 12, name: 'Endgame',
         speed: 295, bgColor: '#030310', groundColor: '#239e46',
         coinReward: 210, endX: 11000,
         obstacles: [
@@ -714,7 +714,7 @@ const LEVEL_DEFS = [
 
     // ── Level 13 — BOSS ──────────────────────────────────────────────────
     {
-        id: 13, name: 'Geometrical Dominator',
+        id: 13, name: 'World Domination',
         speed: 305, bgColor: '#000000', groundColor: '#8b0000',
         coinReward: 350, endX: 14000,
         obstacles: [
